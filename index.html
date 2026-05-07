@@ -2,36 +2,94 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Бункер Коллекционера v2.0</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Бункер Коллекционера v4.0</title>
     <style>
-        body{background:#1a1a0a;color:#c8c8c8;font-family:Arial;display:flex;justify-content:center;align-items:center;height:100vh;margin:0}
-        .container{text-align:center}
-        h1{color:#ff8800}
-        .btn{padding:15px 30px;background:#ff8800;color:#000;border:none;border-radius:25px;font-size:18px;cursor:pointer;margin:10px}
-        .btn:hover{background:#ffaa00}
-        #counter{font-size:48px;color:#ffd700;margin:20px}
-        .found{color:#30c030;font-size:14px;margin:10px}
+        :root{--bg:#0d0d0d;--panel:#1a1a1a;--text:#c8c8c8;--dim:#777;--gold:#f5c842;--danger:#ff4444;--safe:#30c030;--accent:#ff8800;--epic:#c060ff;--legendary:#ff9d00}
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:var(--bg);font-family:Segoe UI,Arial,sans-serif;color:var(--text);height:100vh;width:100vw;overflow:hidden;user-select:none;-webkit-tap-highlight-color:transparent;display:flex;justify-content:center;align-items:center}
+        #game{width:100%;max-width:800px;height:100vh;display:flex;flex-direction:column;background:var(--bg);position:relative;overflow:hidden}
+        #top-bar{display:flex;justify-content:space-around;align-items:center;padding:12px;background:var(--panel);border-bottom:2px solid #333;z-index:10;gap:5px;flex-wrap:wrap}
+        .stat{text-align:center;font-size:10px;color:var(--dim)}.stat span{display:block;font-size:18px;font-weight:bold;color:var(--text)}
+        .stat .danger{color:var(--danger)}.stat .safe{color:var(--safe)}.stat .gold{color:var(--gold)}
+        #time-indicator{font-size:12px;padding:4px 10px;border-radius:12px;background:#111;color:var(--accent)}
+        #main-area{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden;padding:20px}
+        #bunker-view{text-align:center;width:100%}
+        #bunker-view h2{color:var(--accent);margin-bottom:15px;font-size:20px}
+        .shelf-row{display:flex;align-items:center;gap:10px;padding:10px;margin:5px auto;background:#1a1a1a;border-radius:10px;cursor:pointer;transition:.2s;border:2px solid transparent;width:100%;max-width:500px}
+        .shelf-row:hover{border-color:var(--accent);box-shadow:0 0 15px rgba(255,136,0,0.2)}
+        .shelf-row .icon{font-size:28px}.shelf-row .info{flex:1;text-align:left}
+        .shelf-row .info .name{font-size:13px;font-weight:bold}.shelf-row .info .count{font-size:10px;color:var(--dim)}
+        .shelf-row .bonus{font-size:10px;color:var(--safe)}
+        #map-view{display:none;text-align:center;width:100%}
+        #map-view h2{color:var(--accent);margin-bottom:15px}
+        .zone-card{padding:15px;margin:8px auto;background:#1a1a1a;border-radius:12px;cursor:pointer;transition:.2s;border:2px solid #333;max-width:400px;display:flex;align-items:center;gap:12px}
+        .zone-card:hover{border-color:var(--accent)}.zone-card.locked{opacity:.4;cursor:not-allowed}
+        .zone-card .zone-icon{font-size:36px}.zone-card .zone-info{text-align:left;flex:1}
+        .zone-card .zone-info .zone-name{font-size:14px;font-weight:bold}
+        .zone-card .zone-info .zone-danger{font-size:10px;color:var(--danger)}
+        #search-view{display:none;text-align:center;width:100%}
+        #search-view h2{color:var(--accent);margin-bottom:20px}
+        #progress-bar{width:80%;max-width:400px;height:20px;background:#1a1a1a;border-radius:10px;overflow:hidden;margin:20px auto}
+        #progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--gold));width:0%;transition:width .3s;border-radius:10px}
+        #found-items{margin-top:20px}.found-item{display:inline-block;margin:5px;padding:8px 12px;background:#1a1a1a;border-radius:8px;font-size:14px;animation:popIn .5s ease-out}
+        @keyframes popIn{0%{transform:scale(0)}80%{transform:scale(1.2)}100%{transform:scale(1)}}
+        #raid-view{display:none;text-align:center;width:100%}
+        #raid-view h2{color:#ff9d00;margin-bottom:15px}
+        #raid-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:300px;margin:20px auto}
+        .raid-cell{background:#1a1a1a;border:2px solid #333;border-radius:10px;padding:20px;cursor:pointer;font-size:30px;transition:.2s}
+        .raid-cell:hover{border-color:var(--accent)}
+        #stats-view{display:none;text-align:center;width:100%;overflow-y:auto;max-height:60vh}
+        #stats-view h2{color:var(--accent);margin-bottom:15px}
+        .stat-row{display:flex;justify-content:space-between;padding:8px;background:#1a1a1a;border-radius:8px;margin:4px auto;max-width:400px;font-size:12px}
+        .stat-row .val{color:var(--gold);font-weight:bold}
+        .ach-row{display:flex;align-items:center;gap:8px;padding:8px;background:#1a1a1a;border-radius:8px;margin:4px auto;max-width:400px;font-size:11px}
+        .ach-row.done{background:#0a1a0a;border:1px solid var(--safe)}.ach-row.locked{opacity:.5}
+        .panel-modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);background:#1a1a1a;border:2px solid var(--accent);border-radius:16px;padding:25px;z-index:100;text-align:center;max-width:400px;width:90%;transition:transform .3s;box-shadow:0 0 60px rgba(0,0,0,0.8);max-height:80vh;overflow-y:auto}
+        .panel-modal.open{transform:translate(-50%,-50%) scale(1)}
+        #overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:99;opacity:0;pointer-events:none;transition:.3s}
+        #overlay.show{opacity:1;pointer-events:all}
+        .btn{padding:10px 20px;border-radius:20px;border:2px solid #444;background:#1a1a1a;color:var(--text);cursor:pointer;font-size:11px;margin:4px;transition:.2s;text-transform:uppercase;letter-spacing:1px}
+        .btn:hover{background:#333;border-color:var(--accent)}
+        .btn.accent{background:var(--accent);color:#000;border-color:var(--accent);font-weight:bold}
+        #bottom-bar{display:flex;justify-content:center;gap:6px;padding:10px;background:var(--panel);border-top:2px solid #333;z-index:10;flex-wrap:wrap}
+        #toast{position:fixed;top:20%;left:50%;transform:translate(-50%,-50%);font-size:18px;font-weight:bold;pointer-events:none;opacity:0;z-index:200;transition:opacity .3s;text-shadow:0 0 20px currentColor}
+        #toast.show{opacity:1;animation:toastUp 2s forwards}
+        @keyframes toastUp{0%{opacity:1;transform:translate(-50%,-50%)}100%{opacity:0;transform:translate(-50%,-200%)}}
+        .bunker-upgrade{display:flex;justify-content:space-between;align-items:center;padding:8px;background:#1a1a1a;border-radius:8px;margin:4px auto;max-width:400px;font-size:11px}
+        .bunker-upgrade button{padding:6px 12px;border-radius:12px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;font-size:10px}
+        .bunker-upgrade button:disabled{opacity:.3}
+        @media(max-width:650px){.btn{padding:6px 10px;font-size:9px}.stat span{font-size:14px}}
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🏠 Бункер v2.0</h1>
-        <p>Найдено предметов:</p>
-        <div id="counter">0</div>
-        <button class="btn" onclick="clicked()">🔍 Искать предметы</button>
-        <div id="last" class="found"></div>
-        <p style="color:#888;margin-top:20px;">v3.0 — Авто-обновление работает!</p>
+<div id="game">
+    <div id="top-bar">
+        <div class="stat">☀️ День<br><span id="s-day">1</span></div>
+        <div id="time-indicator">🌅 Утро</div>
+        <div class="stat">🍞 Еда<br><span class="safe" id="s-food">10</span></div>
+        <div class="stat">❤️ Здоровье<br><span class="danger" id="s-health">100</span></div>
+        <div class="stat">🍀 Удача<br><span class="gold" id="s-luck">0</span></div>
+        <div class="stat">💰 Монеты<br><span class="gold" id="s-coins">0</span></div>
+        <div class="stat">🐕 Пёс<br><span id="s-dog">😴</span></div>
     </div>
-    <script>
-        var count = 0;
-        var items = ['🌿 Ветка','🔩 Гвоздь','📖 Книга','💡 Лампа','🔑 Ключ'];
-        function clicked(){
-            count++;
-            var item = items[Math.floor(Math.random()*items.length)];
-            document.getElementById('counter').textContent = count;
-            document.getElementById('last').textContent = 'Найдено: ' + item;
-        }
-    </script>
-</body>
-</html>
+    <div id="main-area">
+        <div id="bunker-view"><h2>🏠 ТВОЙ БУНКЕР</h2><div id="shelves"></div><div id="upgrades-section"></div></div>
+        <div id="map-view"><h2>🌄 ПУСТОШЬ</h2><div id="zones"></div></div>
+        <div id="search-view"><h2 id="search-title">🔍 Поиск...</h2><div id="progress-bar"><div id="progress-fill"></div></div><div id="found-items"></div></div>
+        <div id="raid-view"><h2>🎯 ВЫЛАЗКА</h2><div id="raid-grid"></div><p id="raid-status" style="color:#aaa;margin:10px;"></p></div>
+        <div id="stats-view"><h2>📊 СТАТИСТИКА</h2><div id="stats-content"></div><h2 style="margin-top:20px;">🏆 ДОСТИЖЕНИЯ</h2><div id="ach-content"></div></div>
+    </div>
+    <div id="bottom-bar">
+        <button class="btn accent" id="btn-bunker">🏠</button><button class="btn" id="btn-map">🌄</button>
+        <button class="btn" id="btn-raid" style="color:#ff9d00;border-color:#ff9d00;">🎯</button>
+        <button class="btn" id="btn-stats">📊</button><button class="btn" id="btn-upgrades">🔨</button>
+        <button class="btn" id="btn-craft">🔧</button><button class="btn" id="btn-trade">🤝</button><button class="btn" id="btn-story">📖</button>
+    </div>
+</div>
+<div id="overlay"></div><div id="toast"></div>
+<div id="event-popup" class="panel-modal"><h3 id="event-title"></h3><p id="event-text" style="color:#aaa;margin:10px 0;"></p><button class="btn accent" id="event-ok">OK</button></div>
+<div id="craft-popup" class="panel-modal"><h3>🔧 КРАФТ</h3><p style="color:#aaa;font-size:10px;">Объедини предметы → предмет выше рангом</p><div id="craft-options" style="margin:10px 0;"></div><button class="btn" id="close-craft">Закрыть</button></div>
+<div id="trade-popup" class="panel-modal"><h3>🤝 ТОРГОВЛЯ</h3><p style="color:#aaa;font-size:10px;">Обменяй 5 обычных → 1 необычный</p><button class="btn accent" id="do-trade">Обменять (5 обычных)</button><button class="btn" id="close-trade">Закрыть</button></div>
+<div id="story-popup" class="panel-modal"><h3>📖 ЗАПИСКИ ВЫЖИВШИХ</h3><div id="story-content" style="max-height:300px;overflow-y:auto;font-size:12px;color:#ccc;"></div><button class="btn" id="close-story">Закрыть</button></div>
+<div id="upgrades-popup" class="panel-modal"><h3>🔨 УЛУЧШЕНИЯ БУНКЕРА</h3><div id="upgrades-content"></div><button class="btn" id="close-upgrades">Закрыть</button></div>
