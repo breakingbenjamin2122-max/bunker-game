@@ -1,95 +1,171 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Бункер Коллекционера v4.0</title>
-    <style>
-        :root{--bg:#0d0d0d;--panel:#1a1a1a;--text:#c8c8c8;--dim:#777;--gold:#f5c842;--danger:#ff4444;--safe:#30c030;--accent:#ff8800;--epic:#c060ff;--legendary:#ff9d00}
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{background:var(--bg);font-family:Segoe UI,Arial,sans-serif;color:var(--text);height:100vh;width:100vw;overflow:hidden;user-select:none;-webkit-tap-highlight-color:transparent;display:flex;justify-content:center;align-items:center}
-        #game{width:100%;max-width:800px;height:100vh;display:flex;flex-direction:column;background:var(--bg);position:relative;overflow:hidden}
-        #top-bar{display:flex;justify-content:space-around;align-items:center;padding:12px;background:var(--panel);border-bottom:2px solid #333;z-index:10;gap:5px;flex-wrap:wrap}
-        .stat{text-align:center;font-size:10px;color:var(--dim)}.stat span{display:block;font-size:18px;font-weight:bold;color:var(--text)}
-        .stat .danger{color:var(--danger)}.stat .safe{color:var(--safe)}.stat .gold{color:var(--gold)}
-        #time-indicator{font-size:12px;padding:4px 10px;border-radius:12px;background:#111;color:var(--accent)}
-        #main-area{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden;padding:20px}
-        #bunker-view{text-align:center;width:100%}
-        #bunker-view h2{color:var(--accent);margin-bottom:15px;font-size:20px}
-        .shelf-row{display:flex;align-items:center;gap:10px;padding:10px;margin:5px auto;background:#1a1a1a;border-radius:10px;cursor:pointer;transition:.2s;border:2px solid transparent;width:100%;max-width:500px}
-        .shelf-row:hover{border-color:var(--accent);box-shadow:0 0 15px rgba(255,136,0,0.2)}
-        .shelf-row .icon{font-size:28px}.shelf-row .info{flex:1;text-align:left}
-        .shelf-row .info .name{font-size:13px;font-weight:bold}.shelf-row .info .count{font-size:10px;color:var(--dim)}
-        .shelf-row .bonus{font-size:10px;color:var(--safe)}
-        #map-view{display:none;text-align:center;width:100%}
-        #map-view h2{color:var(--accent);margin-bottom:15px}
-        .zone-card{padding:15px;margin:8px auto;background:#1a1a1a;border-radius:12px;cursor:pointer;transition:.2s;border:2px solid #333;max-width:400px;display:flex;align-items:center;gap:12px}
-        .zone-card:hover{border-color:var(--accent)}.zone-card.locked{opacity:.4;cursor:not-allowed}
-        .zone-card .zone-icon{font-size:36px}.zone-card .zone-info{text-align:left;flex:1}
-        .zone-card .zone-info .zone-name{font-size:14px;font-weight:bold}
-        .zone-card .zone-info .zone-danger{font-size:10px;color:var(--danger)}
-        #search-view{display:none;text-align:center;width:100%}
-        #search-view h2{color:var(--accent);margin-bottom:20px}
-        #progress-bar{width:80%;max-width:400px;height:20px;background:#1a1a1a;border-radius:10px;overflow:hidden;margin:20px auto}
-        #progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--gold));width:0%;transition:width .3s;border-radius:10px}
-        #found-items{margin-top:20px}.found-item{display:inline-block;margin:5px;padding:8px 12px;background:#1a1a1a;border-radius:8px;font-size:14px;animation:popIn .5s ease-out}
-        @keyframes popIn{0%{transform:scale(0)}80%{transform:scale(1.2)}100%{transform:scale(1)}}
-        #raid-view{display:none;text-align:center;width:100%}
-        #raid-view h2{color:#ff9d00;margin-bottom:15px}
-        #raid-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:300px;margin:20px auto}
-        .raid-cell{background:#1a1a1a;border:2px solid #333;border-radius:10px;padding:20px;cursor:pointer;font-size:30px;transition:.2s}
-        .raid-cell:hover{border-color:var(--accent)}
-        #stats-view{display:none;text-align:center;width:100%;overflow-y:auto;max-height:60vh}
-        #stats-view h2{color:var(--accent);margin-bottom:15px}
-        .stat-row{display:flex;justify-content:space-between;padding:8px;background:#1a1a1a;border-radius:8px;margin:4px auto;max-width:400px;font-size:12px}
-        .stat-row .val{color:var(--gold);font-weight:bold}
-        .ach-row{display:flex;align-items:center;gap:8px;padding:8px;background:#1a1a1a;border-radius:8px;margin:4px auto;max-width:400px;font-size:11px}
-        .ach-row.done{background:#0a1a0a;border:1px solid var(--safe)}.ach-row.locked{opacity:.5}
-        .panel-modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);background:#1a1a1a;border:2px solid var(--accent);border-radius:16px;padding:25px;z-index:100;text-align:center;max-width:400px;width:90%;transition:transform .3s;box-shadow:0 0 60px rgba(0,0,0,0.8);max-height:80vh;overflow-y:auto}
-        .panel-modal.open{transform:translate(-50%,-50%) scale(1)}
-        #overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:99;opacity:0;pointer-events:none;transition:.3s}
-        #overlay.show{opacity:1;pointer-events:all}
-        .btn{padding:10px 20px;border-radius:20px;border:2px solid #444;background:#1a1a1a;color:var(--text);cursor:pointer;font-size:11px;margin:4px;transition:.2s;text-transform:uppercase;letter-spacing:1px}
-        .btn:hover{background:#333;border-color:var(--accent)}
-        .btn.accent{background:var(--accent);color:#000;border-color:var(--accent);font-weight:bold}
-        #bottom-bar{display:flex;justify-content:center;gap:6px;padding:10px;background:var(--panel);border-top:2px solid #333;z-index:10;flex-wrap:wrap}
-        #toast{position:fixed;top:20%;left:50%;transform:translate(-50%,-50%);font-size:18px;font-weight:bold;pointer-events:none;opacity:0;z-index:200;transition:opacity .3s;text-shadow:0 0 20px currentColor}
-        #toast.show{opacity:1;animation:toastUp 2s forwards}
-        @keyframes toastUp{0%{opacity:1;transform:translate(-50%,-50%)}100%{opacity:0;transform:translate(-50%,-200%)}}
-        .bunker-upgrade{display:flex;justify-content:space-between;align-items:center;padding:8px;background:#1a1a1a;border-radius:8px;margin:4px auto;max-width:400px;font-size:11px}
-        .bunker-upgrade button{padding:6px 12px;border-radius:12px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;font-size:10px}
-        .bunker-upgrade button:disabled{opacity:.3}
-        @media(max-width:650px){.btn{padding:6px 10px;font-size:9px}.stat span{font-size:14px}}
-    </style>
-</head>
-<body>
-<div id="game">
-    <div id="top-bar">
-        <div class="stat">☀️ День<br><span id="s-day">1</span></div>
-        <div id="time-indicator">🌅 Утро</div>
-        <div class="stat">🍞 Еда<br><span class="safe" id="s-food">10</span></div>
-        <div class="stat">❤️ Здоровье<br><span class="danger" id="s-health">100</span></div>
-        <div class="stat">🍀 Удача<br><span class="gold" id="s-luck">0</span></div>
-        <div class="stat">💰 Монеты<br><span class="gold" id="s-coins">0</span></div>
-        <div class="stat">🐕 Пёс<br><span id="s-dog">😴</span></div>
-    </div>
-    <div id="main-area">
-        <div id="bunker-view"><h2>🏠 ТВОЙ БУНКЕР</h2><div id="shelves"></div><div id="upgrades-section"></div></div>
-        <div id="map-view"><h2>🌄 ПУСТОШЬ</h2><div id="zones"></div></div>
-        <div id="search-view"><h2 id="search-title">🔍 Поиск...</h2><div id="progress-bar"><div id="progress-fill"></div></div><div id="found-items"></div></div>
-        <div id="raid-view"><h2>🎯 ВЫЛАЗКА</h2><div id="raid-grid"></div><p id="raid-status" style="color:#aaa;margin:10px;"></p></div>
-        <div id="stats-view"><h2>📊 СТАТИСТИКА</h2><div id="stats-content"></div><h2 style="margin-top:20px;">🏆 ДОСТИЖЕНИЯ</h2><div id="ach-content"></div></div>
-    </div>
-    <div id="bottom-bar">
-        <button class="btn accent" id="btn-bunker">🏠</button><button class="btn" id="btn-map">🌄</button>
-        <button class="btn" id="btn-raid" style="color:#ff9d00;border-color:#ff9d00;">🎯</button>
-        <button class="btn" id="btn-stats">📊</button><button class="btn" id="btn-upgrades">🔨</button>
-        <button class="btn" id="btn-craft">🔧</button><button class="btn" id="btn-trade">🤝</button><button class="btn" id="btn-story">📖</button>
-    </div>
-</div>
-<div id="overlay"></div><div id="toast"></div>
-<div id="event-popup" class="panel-modal"><h3 id="event-title"></h3><p id="event-text" style="color:#aaa;margin:10px 0;"></p><button class="btn accent" id="event-ok">OK</button></div>
-<div id="craft-popup" class="panel-modal"><h3>🔧 КРАФТ</h3><p style="color:#aaa;font-size:10px;">Объедини предметы → предмет выше рангом</p><div id="craft-options" style="margin:10px 0;"></div><button class="btn" id="close-craft">Закрыть</button></div>
-<div id="trade-popup" class="panel-modal"><h3>🤝 ТОРГОВЛЯ</h3><p style="color:#aaa;font-size:10px;">Обменяй 5 обычных → 1 необычный</p><button class="btn accent" id="do-trade">Обменять (5 обычных)</button><button class="btn" id="close-trade">Закрыть</button></div>
-<div id="story-popup" class="panel-modal"><h3>📖 ЗАПИСКИ ВЫЖИВШИХ</h3><div id="story-content" style="max-height:300px;overflow-y:auto;font-size:12px;color:#ccc;"></div><button class="btn" id="close-story">Закрыть</button></div>
-<div id="upgrades-popup" class="panel-modal"><h3>🔨 УЛУЧШЕНИЯ БУНКЕРА</h3><div id="upgrades-content"></div><button class="btn" id="close-upgrades">Закрыть</button></div>
+
+<script>
+// ==================== ДАННЫЕ ИГРЫ ====================
+var ZONES={forest:{n:'Лес',i:'🌲',d:2,unlock:function(){return true},desc:'Тихий лес. Мало опасностей.'},city:{n:'Город',i:'🏚️',d:4,unlock:function(s){return(s.shelves.tools||0)>=3},desc:'Руины города.'},factory:{n:'Завод',i:'🏭',d:6,unlock:function(s){return(s.shelves.electronics||0)>=2},desc:'Электроника и инструменты.'},swamp:{n:'Болото',i:'☣️',d:7,unlock:function(s){return(s.shelves.medicine||0)>=2},desc:'Токсично. Редкая медицина.'},mountains:{n:'Горы',i:'⛰️',d:8,unlock:function(s){return(s.shelves.tools||0)>=6},desc:'Высоко. Эпические находки.'},metro:{n:'Метро',i:'🚇',d:8,unlock:function(s){return s.stories>=3},desc:'Тёмные тоннели.'},bunker_lab:{n:'Бункер Учёных',i:'🔬',d:9,unlock:function(s){return(s.shelves.electronics||0)>=5&&(s.shelves.medicine||0)>=4},desc:'Секретный бункер.'},lab:{n:'Лаборатория',i:'🧪',d:10,unlock:function(s){return(s.shelves.medicine||0)>=3},desc:'Легендарные предметы.'},desert:{n:'Пустыня',i:'🏜️',d:9,unlock:function(s){return(s.shelves.tools||0)>=8},desc:'Бескрайние пески.'},port:{n:'Порт',i:'⚓',d:7,unlock:function(s){return(s.shelves.electronics||0)>=4},desc:'Затопленный порт.'},hospital:{n:'Больница',i:'🏥',d:5,unlock:function(s){return(s.shelves.medicine||0)>=5},desc:'Старая больница.'}};
+var ALL_ITEMS=[{n:'Ветка',i:'🌿',r:'common',z:'forest',c:'tools',p:1},{n:'Камень',i:'🪨',r:'common',z:'forest',c:'tools',p:1},{n:'Гриб',i:'🍄',r:'common',z:'forest',c:'medicine',p:1},{n:'Ягода',i:'🫐',r:'common',z:'forest',c:'medicine',p:1},{n:'Перо',i:'🪶',r:'common',z:'forest',c:'artifacts',p:1},{n:'Мох',i:'🌿',r:'common',z:'forest',c:'medicine',p:1},{n:'Шишка',i:'🌲',r:'common',z:'forest',c:'artifacts',p:1},{n:'Кора',i:'🪵',r:'common',z:'forest',c:'tools',p:1},{n:'Гвоздь',i:'🔩',r:'common',z:'city',c:'tools',p:1},{n:'Кирпич',i:'🧱',r:'common',z:'city',c:'tools',p:1},{n:'Газета',i:'📰',r:'common',z:'city',c:'books',p:1},{n:'Монета',i:'🪙',r:'common',z:'city',c:'artifacts',p:1},{n:'Пробка',i:'🍾',r:'common',z:'city',c:'artifacts',p:1},{n:'Ключ',i:'🔑',r:'common',z:'city',c:'tools',p:1},{n:'Ложка',i:'🥄',r:'common',z:'city',c:'tools',p:1},{n:'Пуговица',i:'🔘',r:'common',z:'city',c:'artifacts',p:1},{n:'Болт',i:'🔩',r:'common',z:'factory',c:'tools',p:1},{n:'Гайка',i:'🔧',r:'common',z:'factory',c:'tools',p:1},{n:'Провод',i:'🔌',r:'common',z:'factory',c:'electronics',p:1},{n:'Шестерня',i:'⚙️',r:'common',z:'factory',c:'tools',p:1},{n:'Свеча',i:'🕯️',r:'common',z:'metro',c:'artifacts',p:1},{n:'Верёвка',i:'🪢',r:'common',z:'metro',c:'tools',p:1},{n:'Кость',i:'🦴',r:'common',z:'swamp',c:'artifacts',p:1},{n:'Тина',i:'🟢',r:'common',z:'swamp',c:'medicine',p:1},{n:'Камешек',i:'💎',r:'common',z:'mountains',c:'artifacts',p:1},{n:'Пробирка',i:'🧪',r:'common',z:'bunker_lab',c:'medicine',p:1},{n:'Песок',i:'🏖️',r:'common',z:'desert',c:'artifacts',p:1},{n:'Кактус',i:'🌵',r:'common',z:'desert',c:'medicine',p:1},{n:'Череп',i:'💀',r:'common',z:'desert',c:'artifacts',p:1},{n:'Якорь',i:'⚓',r:'common',z:'port',c:'tools',p:1},{n:'Сеть',i:'🕸️',r:'common',z:'port',c:'tools',p:1},{n:'Ракушка',i:'🐚',r:'common',z:'port',c:'artifacts',p:1},{n:'Шприц',i:'💉',r:'common',z:'hospital',c:'medicine',p:1},{n:'Бланк',i:'📋',r:'common',z:'hospital',c:'books',p:1},{n:'Бинты',i:'🩹',r:'common',z:'hospital',c:'medicine',p:1},{n:'Молоток',i:'🔨',r:'uncommon',z:'city',c:'tools',p:5},{n:'Отвёртка',i:'🪛',r:'uncommon',z:'city',c:'tools',p:5},{n:'Книга',i:'📖',r:'uncommon',z:'city',c:'books',p:5},{n:'Бинт',i:'🩹',r:'uncommon',z:'city',c:'medicine',p:5},{n:'Батарейка',i:'🔋',r:'uncommon',z:'factory',c:'electronics',p:5},{n:'Лампа',i:'💡',r:'uncommon',z:'factory',c:'electronics',p:5},{n:'Компас',i:'🧭',r:'uncommon',z:'forest',c:'artifacts',p:5},{n:'Фляга',i:'🫗',r:'uncommon',z:'forest',c:'tools',p:5},{n:'Карта',i:'🗺️',r:'uncommon',z:'city',c:'books',p:5},{n:'Нож',i:'🔪',r:'uncommon',z:'city',c:'tools',p:5},{n:'Фонарь',i:'🔦',r:'uncommon',z:'factory',c:'electronics',p:5},{n:'Рация',i:'📻',r:'uncommon',z:'factory',c:'electronics',p:5},{n:'Противогаз',i:'😷',r:'uncommon',z:'swamp',c:'tools',p:5},{n:'Сапог',i:'🥾',r:'uncommon',z:'swamp',c:'tools',p:5},{n:'Гербарий',i:'🌿',r:'uncommon',z:'swamp',c:'books',p:5},{n:'Ледоруб',i:'⛏️',r:'uncommon',z:'mountains',c:'tools',p:5},{n:'Термос',i:'🫖',r:'uncommon',z:'mountains',c:'tools',p:5},{n:'Бинокль',i:'🔭',r:'uncommon',z:'mountains',c:'artifacts',p:5},{n:'Микроскоп',i:'🔬',r:'uncommon',z:'bunker_lab',c:'electronics',p:5},{n:'Колба',i:'🧪',r:'uncommon',z:'bunker_lab',c:'medicine',p:5},{n:'Скорпион',i:'🦂',r:'uncommon',z:'desert',c:'artifacts',p:5},{n:'Кинжал',i:'🗡️',r:'uncommon',z:'desert',c:'tools',p:5},{n:'Амфора',i:'🏺',r:'uncommon',z:'desert',c:'artifacts',p:5},{n:'Штурвал',i:'🛞',r:'uncommon',z:'port',c:'tools',p:5},{n:'Карта порта',i:'🗺️',r:'uncommon',z:'port',c:'books',p:5},{n:'Секстант',i:'🧭',r:'uncommon',z:'port',c:'electronics',p:5},{n:'Термометр',i:'🌡️',r:'uncommon',z:'hospital',c:'electronics',p:5},{n:'Халат',i:'🥼',r:'uncommon',z:'hospital',c:'tools',p:5},{n:'Стетоскоп',i:'🩺',r:'uncommon',z:'hospital',c:'tools',p:5},{n:'Дрель',i:'🔧',r:'rare',z:'factory',c:'tools',p:20},{n:'Аптечка',i:'🏥',r:'rare',z:'city',c:'medicine',p:20},{n:'Радио',i:'📻',r:'rare',z:'city',c:'electronics',p:20},{n:'Статуэтка',i:'🗿',r:'rare',z:'forest',c:'artifacts',p:20},{n:'Антибиотики',i:'💊',r:'rare',z:'factory',c:'medicine',p:20},{n:'Дневник',i:'📔',r:'rare',z:'metro',c:'books',p:20},{n:'Геигер',i:'☢️',r:'rare',z:'swamp',c:'electronics',p:20},{n:'Сыворотка',i:'🧬',r:'rare',z:'swamp',c:'medicine',p:20},{n:'Альпинист',i:'🧗',r:'rare',z:'mountains',c:'tools',p:20},{n:'Кристалл',i:'💠',r:'rare',z:'mountains',c:'artifacts',p:20},{n:'Датчик',i:'📡',r:'rare',z:'bunker_lab',c:'electronics',p:20},{n:'Мумия',i:'🧟',r:'rare',z:'desert',c:'artifacts',p:20},{n:'Золото',i:'🪙',r:'rare',z:'desert',c:'artifacts',p:20},{n:'Навигатор',i:'🧭',r:'rare',z:'port',c:'electronics',p:20},{n:'Сундук',i:'📦',r:'rare',z:'port',c:'artifacts',p:20},{n:'Дефибриллятор',i:'⚡',r:'rare',z:'hospital',c:'electronics',p:20},{n:'Хирургия',i:'🔪',r:'rare',z:'hospital',c:'medicine',p:20},{n:'Генератор',i:'⚡',r:'epic',z:'lab',c:'electronics',p:100},{n:'Вакцина',i:'💉',r:'epic',z:'lab',c:'medicine',p:100},{n:'Гримуар',i:'📕',r:'epic',z:'metro',c:'books',p:100},{n:'Артефакт',i:'🔮',r:'epic',z:'metro',c:'artifacts',p:100},{n:'Экзоскелет',i:'🦾',r:'epic',z:'mountains',c:'tools',p:100},{n:'Гравитация',i:'🛸',r:'epic',z:'bunker_lab',c:'electronics',p:100},{n:'Мутаген',i:'🧪',r:'epic',z:'swamp',c:'medicine',p:100},{n:'Саркофаг',i:'⚰️',r:'epic',z:'desert',c:'artifacts',p:100},{n:'Маяк',i:'🔦',r:'epic',z:'port',c:'electronics',p:100},{n:'Реаниматор',i:'💓',r:'epic',z:'hospital',c:'medicine',p:100},{n:'Кристалл Силы',i:'💎',r:'legendary',z:'lab',c:'electronics',p:500},{n:'Сыворотка Жизни',i:'🧬',r:'legendary',z:'lab',c:'medicine',p:500},{n:'Исходник',i:'📜',r:'legendary',z:'bunker_lab',c:'books',p:500},{n:'Ключ Отца',i:'🗝️',r:'legendary',z:'mountains',c:'artifacts',p:500},{n:'Фараон',i:'👑',r:'legendary',z:'desert',c:'artifacts',p:500},{n:'Капитан',i:'🧑‍✈️',r:'legendary',z:'port',c:'books',p:500},{n:'Панацея',i:'💊',r:'legendary',z:'hospital',c:'medicine',p:500}];
+var RARITY_COLORS={common:'#aaa',uncommon:'#30c030',rare:'#4080ff',epic:'#c060ff',legendary:'#ff9d00'};
+var RARITY_NAMES={common:'Обычный',uncommon:'Необычный',rare:'Редкий',epic:'Эпический',legendary:'Легендарный'};
+var RARITY_ORDER=['common','uncommon','rare','epic','legendary'];
+var STORIES=[{t:'День 1. Первая вылазка.',txt:'Я вышел из бункера. Лес встретил тишиной. Нашёл ветки и грибы. Надо собрать инструменты — без них город слишком опасен.'},{t:'Город найден!',txt:'Сегодня я добрался до города. Руины впечатляют. Нашёл старую книгу. В ней написано про лабораторию на востоке.'},{t:'Записка из метро.',txt:'"Если ты читаешь это — я не выжил. В метро есть старая лаборатория. Там создавали что-то невероятное. Кристаллы."'},{t:'Генератор.',txt:'На заводе я нашёл старый генератор. Теперь в бункере есть свет! Пёс наконец проснулся.'},{t:'Болото.',txt:'Сегодня я пошёл на болото. Воздух тяжёлый. Нашёл противогаз и какие-то пробирки.'},{t:'Горы зовут.',txt:'В горах холодно. Но находки стоят того. Я видел что-то блестящее на вершине.'},{t:'Бункер Учёных.',txt:'Я нашёл его. Спрятан под землёй. Там до сих пор горит свет. Кто-то был здесь до меня.'},{t:'Последний кристалл.',txt:'Все полки заполнены. Бункер стал домом. Но где-то там ещё есть что найти.'},{t:'Голос в темноте.',txt:'Ночью я слышал голос. Кажется, в метро кто-то есть. Или мне показалось.'},{t:'Секрет гор.',txt:'На вершине лежит тело альпиниста. При нём была карта. На карте отмечен Бункер Учёных.'},{t:'Заражение.',txt:'Болото отравляет воду. Нашёл колбу с сывороткой. Если работает — я смогу очистить бункер.'},{t:'Финал?',txt:'Я собрал всё. Легендарные предметы на полках. Но пустота внутри. Может, я просто хочу найти кого-то живого?'}];
+var CARD_SETS=[{name:'Лесной житель',zone:'forest',bonus:'+2 удача',icon:'🌲',color:'#30c030',effect:function(s){s.luck+=2}},{name:'Сталкер',zone:'city',bonus:'-2 опасности',icon:'🏚️',color:'#ff8800',effect:function(s){s.cityDanger=2}},{name:'Заводчанин',zone:'factory',bonus:'+3 находки',icon:'🏭',color:'#4080ff',effect:function(s){s.factoryBonus=3}},{name:'Болотный знахарь',zone:'swamp',bonus:'+5 здоровье',icon:'☣️',color:'#c060ff',effect:function(s){s.health+=5}},{name:'Горный альпинист',zone:'mountains',bonus:'x2 скорость',icon:'⛰️',color:'#ff9d00',effect:function(s){s.mountainSpeed=true}}];
+var CRAFT_RECIPES=[{need:3,from:'common',to:'uncommon',desc:'3 обычных → 1 необычный'},{need:2,from:'uncommon',to:'rare',desc:'2 необычных → 1 редкий'},{need:2,from:'rare',to:'epic',desc:'2 редких → 1 эпический'}];
+var ACHIEVEMENTS=[{id:'first',n:'Первый шаг',d:'Найти первый предмет',icon:'🎉',ch:function(s){return s.totalFinds>=1}},{id:'collector10',n:'Коллекционер',d:'50 разных предметов',icon:'📦',ch:function(s){return Object.keys(s.shelfItems).length>=50}},{id:'survivor',n:'Выживший',d:'Прожить 30 дней',icon:'☀️',ch:function(s){return s.day>=30}},{id:'rich',n:'Богач',d:'Накопить 1000 монет',icon:'💰',ch:function(s){return s.coins>=1000}},{id:'explorer',n:'Исследователь',d:'Открыть 8 зон',icon:'🌍',ch:function(s){return Object.keys(s.zoneUnlocks).length>=8}},{id:'crafter',n:'Крафтер',d:'Создать 5 предметов',icon:'🔧',ch:function(s){return s.craftsDone>=5}},{id:'trader',n:'Торговец',d:'Обменять 10 раз',icon:'🤝',ch:function(s){return s.tradesDone>=10}},{id:'stories',n:'Историк',d:'Найти 10 записок',icon:'📖',ch:function(s){return s.stories>=10}},{id:'upgrader',n:'Строитель',d:'Улучшить бункер 5 раз',icon:'🔨',ch:function(s){return s.upgradesDone>=5}},{id:'legend',n:'Легенда',d:'Найти легендарный предмет',icon:'💎',ch:function(s){return s.hasLegendary}}];
+
+// ==================== СОСТОЯНИЕ ИГРЫ ====================
+var SK='bunker_v4';
+var s={day:1,food:10,health:100,luck:0,coins:0,inv:{},shelves:{tools:0,books:0,artifacts:0,medicine:0,electronics:0},shelfItems:{},stories:0,storyLog:[],zoneUnlocks:{},dogActive:false,foundToday:[],searching:false,currentZone:null,totalFinds:0,craftsDone:0,tradesDone:0,upgradesDone:0,hasLegendary:false,nightSearches:0,ach:{},upgrades:{walls:0,light:0,filter:0,bed:0},timeOfDay:'morning',cardSets:{},prestige:0};
+for(var i=0;i<ALL_ITEMS.length;i++){var it=ALL_ITEMS[i];if(!(it.n in s.inv))s.inv[it.n]=0}
+s.inv['Ветка']=2;s.inv['Гриб']=1;s.inv['Перо']=1;s.inv['Мох']=1;s.inv['Шишка']=1;
+s.shelves.tools=2;s.shelves.medicine=1;s.shelves.artifacts=2;
+s.shelfItems['Ветка']=true;s.shelfItems['Гриб']=true;s.shelfItems['Перо']=true;s.shelfItems['Мох']=true;s.shelfItems['Шишка']=true;
+s.zoneUnlocks.forest=true;s.totalFinds=5;
+
+function save(){try{localStorage.setItem(SK,JSON.stringify(s))}catch(e){}}
+function load(){try{var raw=localStorage.getItem(SK);if(raw){var data=JSON.parse(raw);for(var k in data)s[k]=data[k]}}catch(e){}}
+
+var $=function(id){return document.getElementById(id)};
+var d={day:$('s-day'),food:$('s-food'),health:$('s-health'),luck:$('s-luck'),coins:$('s-coins'),dog:$('s-dog'),shelves:$('shelves'),zones:$('zones'),bunkerView:$('bunker-view'),mapView:$('map-view'),searchView:$('search-view'),raidView:$('raid-view'),raidGrid:$('raid-grid'),raidStatus:$('raid-status'),statsView:$('stats-view'),searchTitle:$('search-title'),progressFill:$('progress-fill'),foundItems:$('found-items'),overlay:$('overlay'),toast:$('toast'),eventPopup:$('event-popup'),eventTitle:$('event-title'),eventText:$('event-text'),storyContent:$('story-content'),storyPopup:$('story-popup'),craftOptions:$('craft-options'),craftPopup:$('craft-popup'),tradePopup:$('trade-popup'),statsContent:$('stats-content'),achContent:$('ach-content'),upgradesContent:$('upgrades-content'),upgradesPopup:$('upgrades-popup'),upgradesSection:$('upgrades-section'),timeIndicator:$('time-indicator')};
+
+function upd(){
+    d.day.textContent=s.day;d.food.textContent=s.food;d.health.textContent=s.health;
+    d.luck.textContent=s.luck;d.coins.textContent=s.coins;d.dog.textContent=s.dogActive?'🐕':'😴';
+    var timeNames={morning:'🌅 Утро',day:'☀️ День',evening:'🌆 Вечер',night:'🌙 Ночь'};
+    d.timeIndicator.textContent=timeNames[s.timeOfDay]||'☀️ День';
+    document.body.style.background=s.timeOfDay==='night'?'#050510':'#0d0d0d';
+    save();
+}
+function toast(tx,co){d.toast.textContent=tx;d.toast.style.color=co||'#fff';d.toast.classList.remove('show');void d.toast.offsetWidth;d.toast.classList.add('show')}
+function hideAll(){d.bunkerView.style.display='none';d.mapView.style.display='none';d.searchView.style.display='none';d.raidView.style.display='none';d.statsView.style.display='none'}
+
+// ==================== БУНКЕР ====================
+function showBunker(){
+    hideAll();d.bunkerView.style.display='block';
+    var cats=[{n:'Инструменты',k:'tools',i:'🔧'},{n:'Книги',k:'books',i:'📚'},{n:'Артефакты',k:'artifacts',i:'🎨'},{n:'Медицина',k:'medicine',i:'💊'},{n:'Электроника',k:'electronics',i:'⚡'}];
+    var html='';
+    for(var i=0;i<cats.length;i++){
+        var c=cats[i],catItems=[],bonus='';
+        for(var j=0;j<ALL_ITEMS.length;j++){if(ALL_ITEMS[j].c===c.k&&s.shelfItems[ALL_ITEMS[j].n])catItems.push(ALL_ITEMS[j])}
+        if(c.k==='tools'&&catItems.length>=3)bonus='🔓 Город';if(c.k==='electronics'&&catItems.length>=2)bonus='🔓 Завод';
+        if(c.k==='medicine'&&catItems.length>=3)bonus='🔓 Лаборатория';if(c.k==='books'&&catItems.length>=3)bonus='🔓 Метро';
+        html+='<div class="shelf-row" onclick="showCategory(\''+c.k+'\')"><div class="icon">'+c.i+'</div><div class="info"><div class="name">'+c.n+'</div><div class="count">'+catItems.length+' предметов';
+        if(catItems.length>0){html+=' <span>';for(var k=0;k<Math.min(catItems.length,6);k++)html+=catItems[k].i;html+='</span>'}
+        html+='</div></div>'+(bonus?'<div class="bonus">'+bonus+'</div>':'')+'</div>';
+    }
+    d.shelves.innerHTML=html;
+    var upgNames={walls:'Стены',light:'Освещение',filter:'Фильтр',bed:'Койка'};
+    var upgIcons={walls:'🧱',light:'💡',filter:'🌀',bed:'🛏️'};
+    var uh='';for(var uk in s.upgrades){uh+='<span style="margin:4px;">'+upgIcons[uk]+' '+(s.upgrades[uk]||0)+'</span>'}
+    d.upgradesSection.innerHTML='<p style="color:#888;font-size:10px;margin-top:10px;">🔨 Улучшения: '+uh+'</p>';
+    upd();
+}
+
+function showCategory(catKey){
+    var catNames={tools:'🔧 Инструменты',books:'📚 Книги',artifacts:'🎨 Артефакты',medicine:'💊 Медицина',electronics:'⚡ Электроника'};
+    var catItems=[],notFound=[];
+    for(var i=0;i<ALL_ITEMS.length;i++){if(ALL_ITEMS[i].c===catKey){if(s.shelfItems[ALL_ITEMS[i].n])catItems.push(ALL_ITEMS[i]);else notFound.push(ALL_ITEMS[i])}}
+    var html='<h3 style="color:var(--accent);">'+catNames[catKey]+'</h3>';
+    if(catItems.length>0){html+='<p style="color:var(--safe);">✅ Найдено: '+catItems.length+'</p>';for(var j=0;j<catItems.length;j++){var it=catItems[j];html+='<div class="shelf-row"><span>'+it.i+'</span><span style="color:'+(RARITY_COLORS[it.r]||'#fff')+';">'+it.n+'</span><span style="color:#888;font-size:9px;">'+RARITY_NAMES[it.r]+'</span></div>'}}
+    if(notFound.length>0){html+='<p style="color:#888;">❓ Ещё не найдено: '+notFound.length+'</p>';for(var k=0;k<notFound.length;k++){html+='<div class="shelf-row" style="opacity:0.4;"><span>❓</span><span>???'+'</span><span style="color:#888;font-size:9px;">'+RARITY_NAMES[notFound[k].r]+'</span></div>'}}
+    d.storyContent.innerHTML=html;d.storyPopup.querySelector('h3').textContent=catNames[catKey];d.storyPopup.classList.add('open');d.overlay.classList.add('show');
+}
+
+// ==================== КАРТА ====================
+function showMap(){hideAll();d.mapView.style.display='block';var html='';for(var k in ZONES){var z=ZONES[k],unlocked=z.unlock(s),dangerBar='';for(var i=0;i<10;i++)dangerBar+=i<z.d?'█':'░';html+='<div class="zone-card'+(unlocked?'':' locked')+'" data-zone="'+k+'" '+(unlocked?'':'')+'><div class="zone-icon">'+z.i+'</div><div class="zone-info"><div class="zone-name">'+z.n+'</div><div class="zone-danger">Опасность: '+dangerBar+'</div><div style="font-size:9px;color:#888;">'+z.desc+'</div></div></div>'}d.zones.innerHTML=html;var cards=document.querySelectorAll('.zone-card:not(.locked)');for(var i=0;i<cards.length;i++)cards[i].onclick=function(){startSearch(this.dataset.zone)};upd()}
+
+// ==================== ПОИСК ====================
+function startSearch(zoneKey){
+    if(s.food<=0){toast('❌ Нет еды!','#ff4444');return}if(s.searching)return;
+    s.searching=true;s.currentZone=zoneKey;s.foundToday=[];s.food--;hideAll();d.searchView.style.display='block';
+    d.searchTitle.textContent='🔍 Поиск: '+ZONES[zoneKey].n;d.progressFill.style.width='0%';d.foundItems.innerHTML='';
+    var progress=0,totalTime=2000+Math.random()*2000;if(s.upgrades.light>=2)totalTime*=0.7;if(s.mountainSpeed)totalTime*=0.5;
+    var interval=setInterval(function(){progress+=5;d.progressFill.style.width=Math.min(100,progress)+'%';if(progress>=100){clearInterval(interval);finishSearch(zoneKey)}},totalTime/20);
+    upd()
+}
+
+function finishSearch(zoneKey){
+    var z=ZONES[zoneKey],numFinds=2+Math.floor(Math.random()*4);if(s.dogActive)numFinds+=2;if(s.upgrades.filter>=1)numFinds+=1;if(s.factoryBonus)numFinds+=s.factoryBonus;
+    var zoneItems=[];for(var i=0;i<ALL_ITEMS.length;i++){if(ALL_ITEMS[i].z===zoneKey)zoneItems.push(ALL_ITEMS[i])}
+    for(var j=0;j<numFinds;j++){if(Math.random()<0.8&&zoneItems.length>0){var item=zoneItems[Math.floor(Math.random()*zoneItems.length)];s.inv[item.n]=(s.inv[item.n]||0)+1;if(!s.shelfItems[item.n]){s.shelfItems[item.n]=true;s.shelves[item.c]=(s.shelves[item.c]||0)+1;if(s.stories<1&&Object.keys(s.shelfItems).length>=5){s.stories=1;showStory(0)}}s.foundToday.push(item);s.coins+=item.p||1;s.totalFinds++;if(item.r==='legendary')s.hasLegendary=true;addFoundItem(item)}}
+    var dmg=z.d;if(s.cityDanger)dmg-=s.cityDanger;if(s.upgrades.walls>=2)dmg-=2;if(Math.random()*10<Math.max(1,dmg)){s.health-=5+Math.floor(Math.random()*15);toast('⚠️ Опасно!','#ff4444')}
+    checkZoneUnlocks();checkCardSets();if(Math.random()<0.3)triggerEvent();s.searching=false;s.day++;updTimeOfDay();
+    setTimeout(function(){d.searchView.style.display='none';showBunker()},1500);upd()
+}
+
+function checkZoneUnlocks(){
+    var unlocks={city:(s.shelves.tools||0)>=3,factory:(s.shelves.electronics||0)>=2,swamp:(s.shelves.medicine||0)>=2,mountains:(s.shelves.tools||0)>=6,metro:s.stories>=3,bunker_lab:(s.shelves.electronics||0)>=5&&(s.shelves.medicine||0)>=4,lab:(s.shelves.medicine||0)>=3,desert:(s.shelves.tools||0)>=8,port:(s.shelves.electronics||0)>=4,hospital:(s.shelves.medicine||0)>=5};
+    for(var k in unlocks){if(unlocks[k]&&!s.zoneUnlocks[k]){s.zoneUnlocks[k]=true;toast('🔓 Открыта зона: '+ZONES[k].n+'!','#30c030')}}
+    if((s.shelves.electronics||0)>=4&&!s.dogActive){s.dogActive=true;toast('🐕 Пёс проснулся!','#ffd700')}
+}
+
+function updTimeOfDay(){var t=['morning','day','evening','night'];s.timeOfDay=t[s.day%4]}
+function addFoundItem(item){var div=document.createElement('span');div.className='found-item';div.style.color=RARITY_COLORS[item.r]||'#fff';div.textContent=item.i+' '+item.n;d.foundItems.appendChild(div)}
+
+// ==================== ВЫЛАЗКИ ====================
+var raidActive=false,raidFound=0,raidCells=[];
+function startRaid(){if(s.food<2){toast('❌ Нужно 2 еды!','#ff4444');return}if(raidActive)return;s.food-=2;raidActive=true;raidFound=0;raidCells=[];hideAll();d.raidView.style.display='block';d.raidStatus.textContent='Кликай по клеткам!';d.raidGrid.innerHTML='';for(var i=0;i<9;i++){var hasItem=Math.random()<0.7,isTrap=!hasItem&&Math.random()<0.3;raidCells.push({hasItem:hasItem,isTrap:isTrap,opened:false});var cell=document.createElement('div');cell.className='raid-cell';cell.textContent='❓';cell.dataset.idx=i;cell.onclick=function(){openRaidCell(parseInt(this.dataset.idx),this)};d.raidGrid.appendChild(cell)}upd()}
+function openRaidCell(idx,el){if(!raidActive||raidCells[idx].opened)return;raidCells[idx].opened=true;if(raidCells[idx].hasItem){var zoneItems=[];var zk=Object.keys(ZONES)[Math.floor(Math.random()*Object.keys(ZONES).length)];for(var i=0;i<ALL_ITEMS.length;i++){if(ALL_ITEMS[i].z===zk||Math.random()<0.3)zoneItems.push(ALL_ITEMS[i])}if(zoneItems.length>0){var it=zoneItems[Math.floor(Math.random()*zoneItems.length)];s.inv[it.n]=(s.inv[it.n]||0)+1;if(!s.shelfItems[it.n]){s.shelfItems[it.n]=true;s.shelves[it.c]=(s.shelves[it.c]||0)+1}s.totalFinds++;s.coins+=(it.p||1)*2;el.textContent=it.i;el.style.background='#0a1a0a';el.style.borderColor='var(--safe)';toast(it.i+' '+it.n+'!',RARITY_COLORS[it.r]||'#fff')}}else if(raidCells[idx].isTrap){s.health-=10;el.textContent='💥';el.style.background='#1a0a0a';el.style.borderColor='var(--danger)';toast('💥 Ловушка!','#ff4444')}else{el.textContent='💨';el.style.background='#111';toast('Пусто...','#888')}raidFound++;if(raidFound>=9||(raidFound>=5&&Math.random()<0.3)){setTimeout(function(){raidActive=false;d.raidView.style.display='none';showBunker();checkCardSets();upd()},1000)}upd()}
+function checkCardSets(){if(!CARD_SETS)return;for(var i=0;i<CARD_SETS.length;i++){var cs=CARD_SETS[i];if(!s.cardSets[cs.name]){var zoneItems=[];for(var j=0;j<ALL_ITEMS.length;j++){if(ALL_ITEMS[j].z===cs.zone)zoneItems.push(ALL_ITEMS[j].n)}var allFound=true;for(var k=0;k<zoneItems.length;k++){if(!s.shelfItems[zoneItems[k]])allFound=false}if(allFound&&zoneItems.length>0){s.cardSets[cs.name]=true;cs.effect(s);toast('🃏 Сет: '+cs.icon+' '+cs.name+'! '+cs.bonus,cs.color)}}}}
+
+// ==================== КОНЦОВКА ====================
+var gameEnded=false;
+function checkEnding(){if(gameEnded)return;var legendaryCount=0;for(var i=0;i<ALL_ITEMS.length;i++){if(ALL_ITEMS[i].r==='legendary'&&s.shelfItems[ALL_ITEMS[i].n])legendaryCount++}if(legendaryCount>=4&&!gameEnded){gameEnded=true;setTimeout(showEnding,2000)}}
+function showEnding(){
+    var panel=document.createElement('div');panel.className='panel-modal open';panel.style.cssText='z-index:500;max-width:500px;background:#0a0a0a;border:3px solid #ffd700;';
+    panel.innerHTML='<h2 style="color:#ffd700;">🏁 ФИНАЛ</h2><p style="color:#ccc;font-style:italic;">Все легендарные предметы собраны. Бункер сияет.</p><p style="color:#aaa;font-size:11px;">Что дальше?</p><button class="btn accent" id="ending-stay" style="margin:5px;">🏠 Остаться</button><button class="btn" id="ending-leave" style="margin:5px;color:#ff9d00;">🚶 Уйти</button><button class="btn" id="ending-reset" style="margin:5px;color:#ff69b4;">💫 Новая игра+</button>';
+    document.body.appendChild(panel);d.overlay.classList.add('show');
+    document.getElementById('ending-stay').onclick=function(){panel.innerHTML='<h2 style="color:#ffd700;">🏠 ТЫ ОСТАЛСЯ</h2><p style="color:#ccc;">Бункер стал домом. Полки сияют.</p><p style="color:#aaa;">Конец.</p><button class="btn accent" onclick="location.reload()">Спасибо</button>'};
+    document.getElementById('ending-leave').onclick=function(){panel.innerHTML='<h2 style="color:#ff9d00;">🚶 ТЫ УШЁЛ</h2><p style="color:#ccc;">Ты покинул бункер. Впереди — неизвестность.</p><p style="color:#aaa;">Конец.</p><button class="btn accent" onclick="location.reload()">Спасибо</button>'};
+    document.getElementById('ending-reset').onclick=function(){s.prestige++;s.food=10;s.health=100;s.day=1;s.coins=100;s.zoneUnlocks={forest:true};for(var k in s.shelves)s.shelves[k]=0;s.shelfItems={};s.stories=0;s.dogActive=false;s.hasLegendary=false;s.cardSets={};s.upgrades={walls:0,light:0,filter:0,bed:0};s.totalFinds=0;gameEnded=false;panel.remove();d.overlay.classList.remove('show');toast('💫 Новая игра+! Бонус: 100 монет','#ff69b4');upd();showBunker()};
+}
+
+// ==================== СОБЫТИЯ ====================
+function triggerEvent(){
+    var events=[{t:'💰 Склад!',txt:'+10 еды и +50 монет!',fn:function(){s.food+=10;s.coins+=50}},{t:'⚠️ Мародёры!',txt:'Потеряно 5 здоровья.',fn:function(){s.health-=5}},{t:'🍀 Удача',txt:'+1 удача',fn:function(){s.luck+=1}},{t:'📦 Посылка',txt:'+3 предмета',fn:function(){for(var i=0;i<3;i++){var it=ALL_ITEMS[Math.floor(Math.random()*ALL_ITEMS.length)];s.inv[it.n]=(s.inv[it.n]||0)+1;if(!s.shelfItems[it.n]){s.shelfItems[it.n]=true;s.shelves[it.c]=(s.shelves[it.c]||0)+1}}}}];
+    var ev=events[Math.floor(Math.random()*events.length)];ev.fn();d.eventTitle.textContent=ev.t;d.eventText.textContent=ev.txt;d.eventPopup.classList.add('open');d.overlay.classList.add('show')
+}
+
+// ==================== СТАТИСТИКА ====================
+function showStats(){hideAll();d.statsView.style.display='block';var html='';html+='<div class="stat-row"><span>Всего найдено</span><span class="val">'+s.totalFinds+'</span></div>';html+='<div class="stat-row"><span>Дней прожито</span><span class="val">'+s.day+'</span></div>';html+='<div class="stat-row"><span>Монет</span><span class="val">'+s.coins+'</span></div>';html+='<div class="stat-row"><span>Предметов в коллекции</span><span class="val">'+Object.keys(s.shelfItems).length+'/'+ALL_ITEMS.length+'</span></div>';html+='<div class="stat-row"><span>Зон открыто</span><span class="val">'+Object.keys(s.zoneUnlocks).length+'/11</span></div>';html+='<div class="stat-row"><span>Крафтов</span><span class="val">'+s.craftsDone+'</span></div>';html+='<div class="stat-row"><span>Обменов</span><span class="val">'+s.tradesDone+'</span></div>';d.statsContent.innerHTML=html;var ahtml='';for(var i=0;i<ACHIEVEMENTS.length;i++){var a=ACHIEVEMENTS[i];if(!s.ach[a.id]&&a.ch(s)){s.ach[a.id]=true;toast('🏆 '+a.n+'!','#ffd700')}ahtml+='<div class="ach-row'+(s.ach[a.id]?' done':' locked')+'"><span>'+a.icon+'</span><div><b>'+a.n+'</b><div style="font-size:9px;color:#888;">'+a.d+'</div></div>'+(s.ach[a.id]?'<span style="color:var(--safe);">✅</span>':'')+'</div>'}d.achContent.innerHTML=ahtml;upd()}
+
+// ==================== УЛУЧШЕНИЯ ====================
+function showUpgrades(){var costs={walls:[50,150,300],light:[100,250,500],filter:[200,400,800],bed:[300,600,1000]};var names={walls:'Стены (+защита)',light:'Освещение (+скорость)',filter:'Фильтр (+находки)',bed:'Койка (+здоровье)'};var icons={walls:'🧱',light:'💡',filter:'🌀',bed:'🛏️'};var html='';for(var k in costs){var lvl=s.upgrades[k]||0,max=costs[k].length,canUp=lvl<max&&s.coins>=costs[k][lvl];html+='<div class="bunker-upgrade"><span>'+icons[k]+' '+names[k]+'</span><span>Ур.'+lvl+'/'+max+'</span><button data-key="'+k+'" '+(canUp?'':'disabled')+'>'+(lvl>=max?'Макс':costs[k][lvl]+'💰')+'</button></div>'}d.upgradesContent.innerHTML=html;d.upgradesPopup.classList.add('open');d.overlay.classList.add('show');var btns=document.querySelectorAll('#upgrades-content button:not([disabled])');for(var i=0;i<btns.length;i++)btns[i].onclick=function(){var k=this.dataset.key,lvl=s.upgrades[k]||0,cs={walls:[50,150,300],light:[100,250,500],filter:[200,400,800],bed:[300,600,1000]};var cost=cs[k]?cs[k][lvl]:50;if(s.coins>=cost){s.coins-=cost;s.upgrades[k]=(s.upgrades[k]||0)+1;s.upgradesDone++;toast('🔨 Улучшено!','#ffd700');upd();showUpgrades()}}}
+
+// ==================== КРАФТ ====================
+function showCraft(){var html='';for(var i=0;i<CRAFT_RECIPES.length;i++){var r=CRAFT_RECIPES[i],count=0;for(var j=0;j<ALL_ITEMS.length;j++){if(ALL_ITEMS[j].r===r.from)count+=(s.inv[ALL_ITEMS[j].n]||0)}var can=count>=r.need;html+='<div class="shelf-row"><span>'+r.desc+'</span><button class="btn accent" '+(can?'':'disabled')+' data-from="'+r.from+'" data-to="'+r.to+'" data-need="'+r.need+'">Создать</button></div>'}d.craftOptions.innerHTML=html;d.craftPopup.classList.add('open');d.overlay.classList.add('show');var btns=document.querySelectorAll('#craft-options button:not([disabled])');for(var i=0;i<btns.length;i++)btns[i].onclick=function(){doCraft(this.dataset.from,this.dataset.to,parseInt(this.dataset.need))}}
+function doCraft(from,to,need){var removed=0;for(var i=0;i<ALL_ITEMS.length&&removed<need;i++){if(ALL_ITEMS[i].r===from&&(s.inv[ALL_ITEMS[i].n]||0)>0){var take=Math.min(s.inv[ALL_ITEMS[i].n],need-removed);s.inv[ALL_ITEMS[i].n]-=take;removed+=take;if(s.inv[ALL_ITEMS[i].n]<=0&&s.shelfItems[ALL_ITEMS[i].n]){s.shelfItems[ALL_ITEMS[i].n]=false;s.shelves[ALL_ITEMS[i].c]--}}}var targetItems=[];for(var j=0;j<ALL_ITEMS.length;j++){if(ALL_ITEMS[j].r===to)targetItems.push(ALL_ITEMS[j])}if(targetItems.length>0){var ni=targetItems[Math.floor(Math.random()*targetItems.length)];s.inv[ni.n]=(s.inv[ni.n]||0)+1;if(!s.shelfItems[ni.n]){s.shelfItems[ni.n]=true;s.shelves[ni.c]=(s.shelves[ni.c]||0)+1}s.craftsDone++;toast('🔧 '+ni.i+' '+ni.n+'!','#ffd700')}upd();showCraft()}
+
+// ==================== ТОРГОВЛЯ ====================
+function showTrade(){d.tradePopup.classList.add('open');d.overlay.classList.add('show')}
+function doTrade(){var commonCount=0;for(var i=0;i<ALL_ITEMS.length;i++){if(ALL_ITEMS[i].r==='common')commonCount+=(s.inv[ALL_ITEMS[i].n]||0)}if(commonCount<5){toast('❌ Нужно 5 обычных','#ff4444');return}var removed=0;for(var j=0;j<ALL_ITEMS.length&&removed<5;j++){if(ALL_ITEMS[j].r==='common'&&(s.inv[ALL_ITEMS[j].n]||0)>0){var take=Math.min(s.inv[ALL_ITEMS[j].n],5-removed);s.inv[ALL_ITEMS[j].n]-=take;removed+=take;if(s.inv[ALL_ITEMS[j].n]<=0&&s.shelfItems[ALL_ITEMS[j].n]){s.shelfItems[ALL_ITEMS[j].n]=false;s.shelves[ALL_ITEMS[j].c]--}}}var uncommons=[];for(var k=0;k<ALL_ITEMS.length;k++){if(ALL_ITEMS[k].r==='uncommon')uncommons.push(ALL_ITEMS[k])}var ni=uncommons[Math.floor(Math.random()*uncommons.length)];s.inv[ni.n]=(s.inv[ni.n]||0)+1;if(!s.shelfItems[ni.n]){s.shelfItems[ni.n]=true;s.shelves[ni.c]=(s.shelves[ni.c]||0)+1}s.coins+=10;s.tradesDone++;toast('🤝 +'+ni.i+' '+ni.n,'#30c030');upd();closeTrade()}
+function closeTrade(){d.tradePopup.classList.remove('open');d.overlay.classList.remove('show')}
+
+// ==================== ЗАПИСКИ ====================
+function showStory(idx){if(!idx)idx=Math.min(s.stories,STORIES.length-1);if(idx>=STORIES.length)return;var st=STORIES[idx];d.storyContent.innerHTML='<p style="color:var(--accent);font-weight:bold;">'+st.t+'</p><p style="color:#ccc;font-style:italic;">'+st.txt+'</p>';d.storyPopup.classList.add('open');d.overlay.classList.add('show')}
+
+// ==================== БИНДИНГ ====================
+document.getElementById('btn-bunker').addEventListener('click',showBunker);
+document.getElementById('btn-map').addEventListener('click',showMap);
+document.getElementById('btn-raid').addEventListener('click',startRaid);
+document.getElementById('btn-stats').addEventListener('click',showStats);
+document.getElementById('btn-upgrades').addEventListener('click',showUpgrades);
+document.getElementById('btn-craft').addEventListener('click',showCraft);
+document.getElementById('btn-trade').addEventListener('click',showTrade);
+document.getElementById('btn-story').addEventListener('click',function(){showStory(Math.min(s.stories,STORIES.length-1))});
+document.getElementById('event-ok').addEventListener('click',function(){d.eventPopup.classList.remove('open');d.overlay.classList.remove('show')});
+document.getElementById('close-craft').addEventListener('click',function(){d.craftPopup.classList.remove('open');d.overlay.classList.remove('show')});
+document.getElementById('close-trade').addEventListener('click',closeTrade);
+document.getElementById('close-story').addEventListener('click',function(){d.storyPopup.classList.remove('open');d.overlay.classList.remove('show')});
+document.getElementById('close-upgrades').addEventListener('click',function(){d.upgradesPopup.classList.remove('open');d.overlay.classList.remove('show')});
+document.getElementById('do-trade').addEventListener('click',doTrade);
+d.overlay.addEventListener('click',function(){d.eventPopup.classList.remove('open');d.craftPopup.classList.remove('open');d.tradePopup.classList.remove('open');d.storyPopup.classList.remove('open');d.upgradesPopup.classList.remove('open');d.overlay.classList.remove('show')});
+
+// ==================== ИНИТ ====================
+function init(){
+    load();if(Object.keys(s.zoneUnlocks).length===0)s.zoneUnlocks={forest:true};
+    showBunker();
+    console.log('🏠 БУНКЕР v4.0 — 100+ предметов | 11 зон | Концовка | Вылазки | Сеты');
+}
+init();
+</script>
+</body>
+</html>
